@@ -6,6 +6,8 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
+    "postinstall": "prisma generate",
+    "pretest": "prisma generate",
     "test": "jest --detectOpenHandles --forceExit"
   },
   "jest": {
