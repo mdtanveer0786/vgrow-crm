@@ -1,0 +1,659 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+model Organization {
+  id              String           @id @default(uuid()) @db.VarChar(36)
+  name            String           @db.VarChar(255)
+  slug            String           @unique(map: "slug") @db.VarChar(100)
+  logo            String?          @db.VarChar(500)
+  timezone        String           @default("Asia/Kolkata") @db.VarChar(50)
+  language        String           @default("en") @db.VarChar(10)
+  currency        String           @default("INR") @db.VarChar(10)
+  status          String           @default("Active") @db.VarChar(20)
+  customDomain    String?          @map("custom_domain") @db.VarChar(255)
+  primaryColor    String?          @map("primary_color") @db.VarChar(50)
+  customLogoUrl   String?          @map("custom_logo_url") @db.VarChar(500)
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @default(now()) @updatedAt @map("updated_at")
+  activities      Activity[]
+  companies       Company[]
+  contacts        Contact[]
+  deals           Deal[]
+  leads           Lead[]
+  meetings        Meeting[]
+  pipelines       Pipeline[]
+  tasks           Task[]
+  users           User[]
+  communications  Communication[]
+  products        Product[]
+  quotes          Quote[]
+  proposals       Proposal[]
+  customModules   CustomModule[]
+  customRecords   CustomRecord[]
+  automationRules AutomationRule[]
+  articles        Article[]
+  subscriptions   Subscription[]
+  campaigns       Campaign[]
+  callLogs        CallLog[]
+  attachments     Attachment[]
+  teams           Team[]
+  auditLogs       AuditLog[]
+
+  @@map("organizations")
+}
+
+model User {
+  id             String          @id @default(uuid()) @db.VarChar(36)
+  organizationId String          @map("organization_id") @db.VarChar(36)
+  firstName      String          @map("first_name") @db.VarChar(100)
+  lastName       String          @map("last_name") @db.VarChar(100)
+  email          String          @unique(map: "email") @db.VarChar(255)
+  phone          String?         @db.VarChar(20)
+  passwordHash   String          @map("password_hash") @db.VarChar(255)
+  avatar         String?         @db.VarChar(500)
+  status         String          @default("Active") @db.VarChar(20)
+  lastLogin      DateTime?       @map("last_login")
+  teamId         String?         @map("team_id") @db.VarChar(36)
+  reportsTo      String?         @map("reports_to") @db.VarChar(36)
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @default(now()) @updatedAt @map("updated_at")
+  activities     Activity[]
+  contacts       Contact[]
+  deals          Deal[]
+  leads          Lead[]
+  sessions       Session[]
+  tasks          Task[]
+  roles          UserRole[]
+  communications Communication[]
+  quotes         Quote[]
+  proposals      Proposal[]
+  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade, map: "users_ibfk_1")
+  team           Team?           @relation("TeamUsers", fields: [teamId], references: [id], onDelete: SetNull)
+  manager        User?           @relation("UserReportsTo", fields: [reportsTo], references: [id], onDelete: SetNull)
+  subordinates   User[]          @relation("UserReportsTo")
+  managedTeams   Team[]          @relation("ManagerToTeam")
+  auditLogs      AuditLog[]
+
+  @@index([organizationId], map: "idx_users_org")
+  @@map("users")
+}
+
+model Role {
+  id             String           @id @default(uuid()) @db.VarChar(36)
+  organizationId String           @map("organization_id") @db.VarChar(36)
+  name           String           @db.VarChar(100)
+  description    String?          @db.VarChar(500)
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @default(now()) @updatedAt @map("updated_at")
+  permissions    RolePermission[]
+  users          UserRole[]
+
+  @@index([organizationId], map: "idx_roles_org")
+  @@map("roles")
+}
+
+model Permission {
+  id          String           @id @default(uuid()) @db.VarChar(36)
+  module      String           @db.VarChar(50)
+  action      String           @db.VarChar(50)
+  description String?          @db.VarChar(255)
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @default(now()) @updatedAt @map("updated_at")
+  roles       RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleId       String     @map("role_id") @db.VarChar(36)
+  permissionId String     @map("permission_id") @db.VarChar(36)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade, map: "role_permissions_ibfk_2")
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade, map: "role_permissions_ibfk_1")
+
+  @@id([roleId, permissionId])
+  @@index([permissionId], map: "permission_id")
+  @@map("role_permissions")
+}
+
+model UserRole {
+  userId String @map("user_id") @db.VarChar(36)
+  roleId String @map("role_id") @db.VarChar(36)
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade, map: "user_roles_ibfk_2")
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade, map: "user_roles_ibfk_1")
+
+  @@id([userId, roleId])
+  @@index([roleId], map: "role_id")
+  @@map("user_roles")
+}
+
+model Session {
+  id           String   @id @default(uuid()) @db.VarChar(36)
+  userId       String   @map("user_id") @db.VarChar(36)
+  refreshToken String   @unique(map: "refresh_token") @db.VarChar(500)
+  device       String?  @db.VarChar(255)
+  browser      String?  @db.VarChar(255)
+  ip           String?  @db.VarChar(45)
+  expiresAt    DateTime @map("expires_at")
+  createdAt    DateTime @default(now()) @map("created_at")
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade, map: "sessions_ibfk_1")
+
+  @@index([userId], map: "idx_sessions_user")
+  @@map("sessions")
+}
+
+model Company {
+  id             String       @id @default(uuid()) @db.VarChar(36)
+  organizationId String       @map("organization_id") @db.VarChar(36)
+  name           String       @db.VarChar(255)
+  industry       String?      @db.VarChar(100)
+  website        String?      @db.VarChar(500)
+  gstNumber      String?      @map("gst_number") @db.VarChar(20)
+  panNumber      String?      @map("pan_number") @db.VarChar(15)
+  employees      Int?
+  annualRevenue  Decimal?     @map("annual_revenue") @db.Decimal(15, 2)
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @default(now()) @updatedAt @map("updated_at")
+  deletedAt      DateTime?    @map("deleted_at")
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade, map: "companies_ibfk_1")
+  contacts       Contact[]
+  deals          Deal[]
+  leads          Lead[]
+
+  @@index([organizationId], map: "idx_companies_org")
+  @@map("companies")
+}
+
+model Contact {
+  id             String          @id @default(uuid()) @db.VarChar(36)
+  organizationId String          @map("organization_id") @db.VarChar(36)
+  companyId      String?         @map("company_id") @db.VarChar(36)
+  ownerId        String          @map("owner_id") @db.VarChar(36)
+  firstName      String          @map("first_name") @db.VarChar(100)
+  lastName       String          @map("last_name") @db.VarChar(100)
+  email          String?         @db.VarChar(255)
+  phone          String?         @db.VarChar(20)
+  designation    String?         @db.VarChar(100)
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @default(now()) @updatedAt @map("updated_at")
+  deletedAt      DateTime?       @map("deleted_at")
+  company        Company?        @relation(fields: [companyId], references: [id], onDelete: SetNull, map: "contacts_ibfk_2")
+  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade, map: "contacts_ibfk_1")
+  owner          User            @relation(fields: [ownerId], references: [id], map: "contacts_ibfk_3")
+  deals          Deal[]
+  communications Communication[]
+
+  @@index([companyId], map: "company_id")
+  @@index([organizationId], map: "idx_contacts_org")
+  @@index([ownerId], map: "owner_id")
+  @@map("contacts")
+}
+
+model Lead {
+  id             String          @id @default(uuid()) @db.VarChar(36)
+  organizationId String          @map("organization_id") @db.VarChar(36)
+  ownerId        String          @map("owner_id") @db.VarChar(36)
+  companyId      String?         @map("company_id") @db.VarChar(36)
+  name           String          @db.VarChar(255)
+  email          String?         @db.VarChar(255)
+  phone          String?         @db.VarChar(20)
+  source         String          @default("Manual") @db.VarChar(50)
+  status         String          @default("New") @db.VarChar(50)
+  score          Int             @default(0)
+  industry       String?         @db.VarChar(100)
+  website        String?         @db.VarChar(500)
+  city           String?         @db.VarChar(100)
+  state          String?         @db.VarChar(100)
+  country        String?         @db.VarChar(100)
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @default(now()) @updatedAt @map("updated_at")
+  deletedAt      DateTime?       @map("deleted_at")
+  company        Company?        @relation(fields: [companyId], references: [id], onDelete: SetNull, map: "leads_ibfk_3")
+  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade, map: "leads_ibfk_1")
+  owner          User            @relation(fields: [ownerId], references: [id], map: "leads_ibfk_2")
+  communications Communication[]
+
+  @@index([companyId], map: "company_id")
+  @@index([organizationId], map: "idx_leads_org")
+  @@index([organizationId, status], map: "idx_leads_org_status")
+  @@index([ownerId], map: "idx_leads_owner")
+  @@index([status], map: "idx_leads_status")
+  @@map("leads")
+}
+
+model Pipeline {
+  id             String       @id @default(uuid()) @db.VarChar(36)
+  organizationId String       @map("organization_id") @db.VarChar(36)
+  name           String       @db.VarChar(100)
+  isDefault      Boolean      @default(false) @map("is_default")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @default(now()) @updatedAt @map("updated_at")
+  deals          Deal[]
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade, map: "pipelines_ibfk_1")
+  stages         Stage[]
+
+  @@index([organizationId], map: "idx_pipelines_org")
+  @@map("pipelines")
+}
+
+model Stage {
+  id          String   @id @default(uuid()) @db.VarChar(36)
+  pipelineId  String   @map("pipeline_id") @db.VarChar(36)
+  name        String   @db.VarChar(100)
+  position    Int      @default(0)
+  probability Int      @default(100)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+  deals       Deal[]
+  pipeline    Pipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade, map: "stages_ibfk_1")
+
+  @@index([pipelineId], map: "idx_stages_pipeline")
+  @@map("stages")
+}
+
+model Deal {
+  id             String       @id @default(uuid()) @db.VarChar(36)
+  organizationId String       @map("organization_id") @db.VarChar(36)
+  pipelineId     String       @map("pipeline_id") @db.VarChar(36)
+  stageId        String       @map("stage_id") @db.VarChar(36)
+  companyId      String?      @map("company_id") @db.VarChar(36)
+  contactId      String?      @map("contact_id") @db.VarChar(36)
+  ownerId        String       @map("owner_id") @db.VarChar(36)
+  title          String       @db.VarChar(255)
+  amount         Decimal      @db.Decimal(15, 2)
+  currency       String       @default("INR") @db.VarChar(10)
+  probability    Int          @default(100)
+  expectedClose  DateTime?    @map("expected_close")
+  status         String       @default("In Progress") @db.VarChar(30)
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @default(now()) @updatedAt @map("updated_at")
+  deletedAt      DateTime?    @map("deleted_at")
+  company        Company?     @relation(fields: [companyId], references: [id], onDelete: SetNull, map: "deals_ibfk_4")
+  contact        Contact?     @relation(fields: [contactId], references: [id], onDelete: SetNull, map: "deals_ibfk_5")
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade, map: "deals_ibfk_1")
+  owner          User         @relation(fields: [ownerId], references: [id], map: "deals_ibfk_6")
+  pipeline       Pipeline     @relation(fields: [pipelineId], references: [id], map: "deals_ibfk_2")
+  stage          Stage        @relation(fields: [stageId], references: [id], map: "deals_ibfk_3")
+  quotes         Quote[]
+  proposals      Proposal[]
+
+  @@index([companyId], map: "company_id")
+  @@index([contactId], map: "contact_id")
+  @@index([organizationId], map: "idx_deals_org")
+  @@index([organizationId, status], map: "idx_deals_org_status")
+  @@index([ownerId], map: "owner_id")
+  @@index([pipelineId], map: "pipeline_id")
+  @@index([stageId], map: "idx_deals_stage")
+  @@map("deals")
+}
+
+model Activity {
+  id             String       @id @default(uuid()) @db.VarChar(36)
+  organizationId String       @map("organization_id") @db.VarChar(36)
+  userId         String       @map("user_id") @db.VarChar(36)
+  entityType     String       @map("entity_type") @db.VarChar(30)
+  entityId       String       @map("entity_id") @db.VarChar(36)
+  activityType   String       @map("activity_type") @db.VarChar(30)
+  description    String       @db.Text
+  createdAt      DateTime     @default(now()) @map("created_at")
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade, map: "activities_ibfk_1")
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade, map: "activities_ibfk_2")
+
+  @@index([organizationId], map: "idx_activities_org")
+  @@index([entityType, entityId], map: "idx_activities_entity")
+  @@index([userId], map: "user_id")
+  @@map("activities")
+}
+
+model Task {
+  id             String       @id @default(uuid()) @db.VarChar(36)
+  organizationId String       @map("organization_id") @db.VarChar(36)
+  assignedTo     String       @map("assigned_to") @db.VarChar(36)
+  entityType     String?      @map("entity_type") @db.VarChar(30)
+  entityId       String?      @map("entity_id") @db.VarChar(36)
+  title          String       @db.VarChar(255)
+  priority       String       @default("Medium") @db.VarChar(20)
+  status         String       @default("Pending") @db.VarChar(20)
+  dueDate        DateTime?    @map("due_date")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @default(now()) @updatedAt @map("updated_at")
+  assignee       User         @relation(fields: [assignedTo], references: [id], onDelete: Cascade, map: "tasks_ibfk_2")
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade, map: "tasks_ibfk_1")
+
+  @@index([assignedTo], map: "idx_tasks_assignee")
+  @@index([organizationId], map: "idx_tasks_org")
+  @@map("tasks")
+}
+
+model Meeting {
+  id             String       @id @default(uuid()) @db.VarChar(36)
+  organizationId String       @map("organization_id") @db.VarChar(36)
+  title          String       @db.VarChar(255)
+  startTime      DateTime     @map("start_time")
+  endTime        DateTime     @map("end_time")
+  meetingType    String       @default("Follow-up") @map("meeting_type") @db.VarChar(50)
+  location       String?      @db.VarChar(255)
+  status         String       @default("Scheduled") @db.VarChar(20)
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @default(now()) @updatedAt @map("updated_at")
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade, map: "meetings_ibfk_1")
+
+  @@index([organizationId], map: "idx_meetings_org")
+  @@map("meetings")
+}
+
+model Invoice {
+  id                String   @id @default(uuid()) @db.VarChar(36)
+  organizationId    String   @map("organization_id") @db.VarChar(36)
+  clientName        String   @map("client_name") @db.VarChar(255)
+  amount            Decimal  @db.Decimal(15, 2)
+  status            String   @default("Unpaid") @db.VarChar(50)
+  dueDate           String   @map("due_date") @db.VarChar(50)
+  gstType           String   @default("CGST_SGST") @map("gst_type") @db.VarChar(50)
+  gstRate           Int      @default(18) @map("gst_rate")
+  baseAmount        Decimal  @map("base_amount") @db.Decimal(15, 2)
+  gstAmount         Decimal  @map("gst_amount") @db.Decimal(15, 2)
+  razorpayOrderId   String?  @map("razorpay_order_id") @db.VarChar(100)
+  razorpayPaymentId String?  @map("razorpay_payment_id") @db.VarChar(100)
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@index([organizationId], map: "idx_invoices_org")
+  @@map("invoices")
+}
+
+model Communication {
+  id             String   @id @default(uuid()) @db.VarChar(36)
+  organizationId String   @map("organization_id") @db.VarChar(36)
+  contactId      String?  @map("contact_id") @db.VarChar(36)
+  leadId         String?  @map("lead_id") @db.VarChar(36)
+  ownerId        String?  @map("owner_id") @db.VarChar(36)
+  type           String   @db.VarChar(50) // 'Email', 'WhatsApp', 'Call', 'Note'
+  direction      String   @db.VarChar(50) // 'Inbound', 'Outbound'
+  status         String   @default("Completed") @db.VarChar(50) // 'Sent', 'Delivered', 'Read', 'Failed', 'Completed', 'Missed'
+  subject        String?  @db.VarChar(255)
+  content        String   @db.Text
+  metadata       Json? // to store call duration, provider IDs, external links
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  owner        User?        @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  contact      Contact?     @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  lead         Lead?        @relation(fields: [leadId], references: [id], onDelete: SetNull)
+
+  @@index([organizationId], map: "idx_comms_org")
+  @@index([contactId], map: "idx_comms_contact")
+  @@index([leadId], map: "idx_comms_lead")
+  @@map("communications")
+}
+
+model Product {
+  id             String   @id @default(uuid()) @db.VarChar(36)
+  organizationId String   @map("organization_id") @db.VarChar(36)
+  name           String   @db.VarChar(255)
+  sku            String   @db.VarChar(100)
+  category       String   @db.VarChar(100)
+  unitPrice      Decimal  @map("unit_price") @db.Decimal(15, 2)
+  status         String   @default("Active") @db.VarChar(50)
+  description    String?  @db.Text
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId], map: "idx_products_org")
+  @@map("products")
+}
+
+model Quote {
+  id             String    @id @default(uuid()) @db.VarChar(36)
+  organizationId String    @map("organization_id") @db.VarChar(36)
+  dealId         String?   @map("deal_id") @db.VarChar(36)
+  ownerId        String    @map("owner_id") @db.VarChar(36)
+  title          String    @db.VarChar(255)
+  amount         Decimal   @db.Decimal(15, 2)
+  status         String    @default("Draft") @db.VarChar(30)
+  validUntil     DateTime? @map("valid_until")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  deal         Deal?        @relation(fields: [dealId], references: [id], onDelete: SetNull)
+  owner        User         @relation(fields: [ownerId], references: [id])
+
+  @@index([organizationId], map: "idx_quotes_org")
+  @@index([dealId], map: "idx_quotes_deal")
+  @@map("quotes")
+}
+
+model Proposal {
+  id             String    @id @default(uuid()) @db.VarChar(36)
+  organizationId String    @map("organization_id") @db.VarChar(36)
+  dealId         String?   @map("deal_id") @db.VarChar(36)
+  ownerId        String    @map("owner_id") @db.VarChar(36)
+  title          String    @db.VarChar(255)
+  amount         Decimal   @db.Decimal(15, 2)
+  status         String    @default("Draft") @db.VarChar(30) // Draft, In Review, Approved, Signed
+  validUntil     DateTime? @map("valid_until")
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  deal         Deal?        @relation(fields: [dealId], references: [id], onDelete: SetNull)
+  owner        User         @relation(fields: [ownerId], references: [id])
+  signatures   Signature[]
+
+  @@index([organizationId], map: "idx_proposals_org")
+  @@index([dealId], map: "idx_proposals_deal")
+  @@map("proposals")
+}
+
+model CustomModule {
+  id             String   @id @default(uuid()) @db.VarChar(36)
+  organizationId String   @map("organization_id") @db.VarChar(36)
+  name           String   @db.VarChar(100) // internal name, e.g., 'properties'
+  singularName   String   @map("singular_name") @db.VarChar(100) // e.g., 'Property'
+  pluralName     String   @map("plural_name") @db.VarChar(100) // e.g., 'Properties'
+  icon           String?  @db.VarChar(50)
+  schema         Json // array of fields: [{ name, label, type, required }]
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at")
+
+  organization Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  records      CustomRecord[]
+
+  @@index([organizationId], map: "idx_custom_modules_org")
+  @@map("custom_modules")
+}
+
+model CustomRecord {
+  id             String   @id @default(uuid()) @db.VarChar(36)
+  organizationId String   @map("organization_id") @db.VarChar(36)
+  moduleId       String   @map("module_id") @db.VarChar(36)
+  data           Json // JSON payload matching the module schema
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  module       CustomModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId], map: "idx_custom_records_org")
+  @@index([moduleId], map: "idx_custom_records_module")
+  @@map("custom_records")
+}
+
+model AutomationRule {
+  id             String   @id @default(uuid()) @db.VarChar(36)
+  organizationId String   @map("organization_id") @db.VarChar(36)
+  name           String   @db.VarChar(255)
+  trigger        String   @db.VarChar(100)
+  action         String   @db.VarChar(100)
+  active         Boolean  @default(true)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId], map: "idx_automations_org")
+  @@map("automation_rules")
+}
+
+model Article {
+  id             String   @id @default(uuid()) @db.VarChar(36)
+  organizationId String   @map("organization_id") @db.VarChar(36)
+  title          String   @db.VarChar(255)
+  category       String   @db.VarChar(100)
+  body           String   @db.Text
+  status         String   @default("Published") @db.VarChar(50)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId], map: "idx_articles_org")
+  @@map("articles")
+}
+
+model Subscription {
+  id                   String    @id @default(uuid()) @db.VarChar(36)
+  organizationId       String    @map("organization_id") @db.VarChar(36)
+  planName             String    @db.VarChar(100)
+  interval             String    @db.VarChar(50) // Monthly, Yearly
+  amount               Decimal   @db.Decimal(10, 2)
+  status               String    @default("Active") @db.VarChar(50)
+  stripeCustomerId     String?   @map("stripe_customer_id") @db.VarChar(100)
+  stripeSubscriptionId String?   @map("stripe_subscription_id") @db.VarChar(100)
+  currentPeriodEnd     DateTime? @map("current_period_end")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId], map: "idx_subscriptions_org")
+  @@map("subscriptions")
+}
+
+model Campaign {
+  id             String   @id @default(uuid()) @db.VarChar(36)
+  organizationId String   @map("organization_id") @db.VarChar(36)
+  name           String   @db.VarChar(255)
+  subject        String   @db.VarChar(255)
+  category       String   @db.VarChar(100)
+  status         String   @default("Pending") @db.VarChar(50)
+  opens          Int      @default(0)
+  clicks         Int      @default(0)
+  sentCount      Int      @default(0) @map("sent_count")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at")
+
+  organization Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  logs         CampaignMailLog[]
+
+  @@index([organizationId], map: "idx_campaigns_org")
+  @@map("campaigns")
+}
+
+model CampaignMailLog {
+  id         String   @id @default(uuid()) @db.VarChar(36)
+  campaignId String   @map("campaign_id") @db.VarChar(36)
+  email      String   @db.VarChar(255)
+  status     String   @db.VarChar(50) // Sent, Opened, Clicked, Failed
+  sentAt     DateTime @default(now()) @map("sent_at")
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId], map: "idx_campaign_logs_camp")
+  @@map("campaign_mail_logs")
+}
+
+model CallLog {
+  id             String   @id @default(uuid()) @db.VarChar(36)
+  organizationId String   @map("organization_id") @db.VarChar(36)
+  clientName     String   @db.VarChar(255)
+  duration       Int      @default(0) // seconds
+  notes          String?  @db.Text
+  summary        String?  @db.Text
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId], map: "idx_call_logs_org")
+  @@map("call_logs")
+}
+
+model Attachment {
+  id             String   @id @default(uuid()) @db.VarChar(36)
+  organizationId String   @map("organization_id") @db.VarChar(36)
+  entityId       String   @map("entity_id") @db.VarChar(36)
+  entityType     String   @map("entity_type") @db.VarChar(100) // Lead, Account
+  fileName       String   @map("file_name") @db.VarChar(255)
+  fileUrl        String   @map("file_url") @db.VarChar(2000)
+  fileSize       Int      @default(0) @map("file_size")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId], map: "idx_attachments_org")
+  @@index([entityType, entityId], map: "idx_attachments_entity")
+  @@map("attachments")
+}
+
+model Team {
+  id             String   @id @default(uuid()) @db.VarChar(36)
+  organizationId String   @map("organization_id") @db.VarChar(36)
+  name           String   @db.VarChar(255)
+  managerId      String?  @map("manager_id") @db.VarChar(36)
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @default(now()) @updatedAt @map("updated_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  manager      User?        @relation("ManagerToTeam", fields: [managerId], references: [id], onDelete: SetNull)
+  users        User[]       @relation("TeamUsers")
+
+  @@index([organizationId], map: "idx_teams_org")
+  @@map("teams")
+}
+
+model Signature {
+  id                String   @id @default(uuid()) @db.VarChar(36)
+  proposalId        String   @map("proposal_id") @db.VarChar(36)
+  ipAddress         String?  @map("ip_address") @db.VarChar(45)
+  userAgent         String?  @map("user_agent") @db.VarChar(500)
+  cryptographicHash String   @map("cryptographic_hash") @db.VarChar(255)
+  signedAt          DateTime @default(now()) @map("signed_at")
+
+  proposal Proposal @relation(fields: [proposalId], references: [id], onDelete: Cascade)
+
+  @@index([proposalId], map: "idx_signatures_proposal")
+  @@map("signatures")
+}
+
+model AuditLog {
+  id             String   @id @default(uuid()) @db.VarChar(36)
+  organizationId String   @map("organization_id") @db.VarChar(36)
+  userId         String   @map("user_id") @db.VarChar(36)
+  action         String   @db.VarChar(100)
+  target         String   @db.VarChar(100)
+  metadata       Json?
+  ipAddress      String?  @map("ip_address") @db.VarChar(50)
+  userAgent      String?  @map("user_agent") @db.VarChar(500)
+  createdAt      DateTime @default(now()) @map("created_at")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId], map: "idx_audit_logs_org")
+  @@index([userId], map: "idx_audit_logs_user")
+  @@index([action], map: "idx_audit_logs_action")
+  @@map("audit_logs")
+}
