@@ -7,6 +7,10 @@ on:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
     # Wait for tests to pass before deploying
     # needs: [test-backend, test-frontend] # Uncomment if placed in the same workflow
 
