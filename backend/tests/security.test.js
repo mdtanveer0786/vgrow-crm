@@ -38,8 +38,9 @@ describe('Security Regression Tests', () => {
 
   it('should reject access to protected routes for users with no roles (RBAC Bypass Fix)', async () => {
     const res = await request(app)
-      .get('/api/users') // An admin/manager route
-      .set('Authorization', `Bearer ${token}`);
+      .post('/api/pipelines') // An admin/manager route
+      .set('Authorization', `Bearer ${token}`)
+      .send({ name: 'Test Pipeline' });
     
     expect(res.statusCode).toEqual(403);
     expect(res.body.message).toContain('No roles assigned');
