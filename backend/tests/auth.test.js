@@ -1,5 +1,5 @@
 const request = require('supertest');
-const app = require('../server');
+const { app } = require('../server');
 
 describe('Auth Endpoints', () => {
   it('should reject access to protected routes without token', async () => {

@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const { prisma } = require('../config/db');
-const { asyncHandler } = require('../middleware/errorHandler');
+const { asyncHandler, AppError } = require('../middleware/errorHandler');
 
 // Generate JWT token helper
 const generateToken = (id) => {
@@ -132,8 +132,7 @@ const loginUser = asyncHandler(async (req, res) => {
     }
   }
 
-  res.status(401);
-  throw new Error('Invalid credentials');
+  throw new AppError('Invalid credentials', 401);
 });
 
 // @desc    Get current user profile

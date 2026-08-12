@@ -1,5 +1,5 @@
 const request = require('supertest');
-const app = require('../server');
+const { app } = require('../server');
 
 describe('Billing Endpoints', () => {
   it('should reject Razorpay webhook with missing signature', async () => {

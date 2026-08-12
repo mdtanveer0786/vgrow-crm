@@ -66,9 +66,13 @@ const requestLogger = pinoHttp({
   })
 });
 
+const asyncHandler = (fn) => (req, res, next) =>
+  Promise.resolve(fn(req, res, next)).catch(next);
+
 module.exports = {
   AppError,
   errorHandler,
   requestLogger,
-  logger
+  logger,
+  asyncHandler
 };
