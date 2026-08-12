@@ -86,11 +86,10 @@ const authorize = (...allowedRoles) => {
     // Also check actual role names from UserRole join table
     const hasPermission = allowedRoles.some(role => userRoles.includes(role));
 
-    // Fallback: if user has NO roles assigned at all, allow access for now
-    // (handles legacy users created before role assignment was implemented)
+    // Reject users with no roles
     if (userRoles.length === 0) {
-      console.warn(`[RBAC] User ${req.user.id} has no roles assigned. Allowing access as fallback.`);
-      return next();
+      console.warn(`[SECURITY] User ${req.user.id} has no roles assigned. Access Denied.`);
+      return res.status(403).json({ message: 'Forbidden: No roles assigned' });
     }
 
     if (!hasPermission) {
