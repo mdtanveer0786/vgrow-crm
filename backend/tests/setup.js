@@ -17,3 +17,16 @@ jest.mock('ioredis', () => {
     quit: jest.fn(),
   }));
 });
+
+// Mock Prisma Client
+jest.mock('./../config/db', () => {
+  return {
+    prisma: {
+      user: {
+        findUnique: jest.fn().mockResolvedValue(null),
+      },
+      $disconnect: jest.fn(),
+    },
+    connectDB: jest.fn(),
+  };
+});
