@@ -54,15 +54,12 @@ export default function CallsPage() {
     setIsCalling(false);
 
     try {
-      const transcriptMock = `Agent and client discussed product details. Client showed interest in VGrow custom builder dashboard and requested an invoice copy.`;
-      
       await authFetch(`${API_BASE}/calls`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           clientName: activeCall?.name || 'Quick Call',
-          duration: callDuration,
-          notes: transcriptMock
+          duration: callDuration
         })
       });
       fetchCalls();
@@ -80,6 +77,10 @@ export default function CallsPage() {
     const remainingSecs = secs % 60;
     return `${String(mins).padStart(2, '0')}:${String(remainingSecs).padStart(2, '0')}`;
   };
+
+  const filteredLogs = callLogs.filter(l =>
+    l.clientName ? l.clientName.toLowerCase().includes(searchQuery.toLowerCase()) : false
+  );
 
   return (
     <>
@@ -176,52 +177,59 @@ export default function CallsPage() {
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '350px', overflowY: 'auto' }}>
-                {callLogs.filter(l => l.clientName.toLowerCase().includes(searchQuery.toLowerCase())).map(log => (
-                  <div key={log.id} style={{ padding: '12px', background: 'rgba(255,255,255,0.01)', border: '1px solid var(--border-color)', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: '12px', fontWeight: '800', color: 'var(--text-primary)' }}>{log.clientName}</span>
-                      <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>
-                        {new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-secondary)' }}>
-                      <span>Duration: {log.duration}s</span>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={async () => {
-                          setSummarizingId(log.id);
-                          try {
-                            const res = await authFetch(`${API_BASE}/calls/${log.id}/summarize`, { method: 'POST' });
-                            const data = await res.json();
-                            alert(data.summary);
-                            fetchCalls();
-                          } catch (e) {
-                            console.error(e);
-                          } finally {
-                            setSummarizingId(null);
-                          }
-                        }}
-                        style={{ padding: '2px 8px', fontSize: '10px' }}
-                        disabled={summarizingId === log.id}
-                      >
-                        {summarizingId === log.id ? 'Summarizing...' : 'AI Summarize'}
-                      </Button>
-                    </div>
-                    {log.summary && (
-                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', background: 'rgba(21, 107, 244, 0.08)', padding: '8px 12px', borderRadius: '4px', fontSize: '10px', color: 'var(--accent-indigo)', lineHeight: '1.4' }}>
-                        <Bot className="w-3.5 h-3.5" style={{ flexShrink: 0, marginTop: '2px' }} />
-                        <div>
-                          <strong>AI Summary:</strong>
-                          <p style={{ margin: '4px 0 0 0', whiteSpace: 'pre-wrap' }}>{log.summary}</p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-                {callLogs.length === 0 && !loadingList && (
+                {loadingList ? (
                   <div style={{ textAlign: 'center', fontSize: '12px', color: 'var(--text-muted)', padding: '24px 0' }}>
-                    No call logs on file. Place a call above to start!
+                    Loading call logs...
+                  </div>
+                ) : filteredLogs.length > 0 ? (
+                  filteredLogs.map(log => (
+                    <div key={log.id} style={{ padding: '12px', background: 'rgba(255,255,255,0.01)', border: '1px solid var(--border-color)', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '12px', fontWeight: '800', color: 'var(--text-primary)' }}>{log.clientName}</span>
+                        <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>
+                          {new Date(log.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-secondary)' }}>
+                        <span>Duration: {log.duration}s</span>
+                        <Button
+                          variant="secondary"
+                          size="sm"
+                          onClick={async () => {
+                            setSummarizingId(log.id);
+                            try {
+                              const res = await authFetch(`${API_BASE}/calls/${log.id}/summarize`, { method: 'POST' });
+                              const data = await res.json();
+                              alert(data.summary);
+                              fetchCalls();
+                            } catch (e) {
+                              console.error(e);
+                            } finally {
+                              setSummarizingId(null);
+                            }
+                          }}
+                          style={{ padding: '2px 8px', fontSize: '10px' }}
+                          disabled={summarizingId === log.id}
+                        >
+                          {summarizingId === log.id ? 'Summarizing...' : 'AI Summarize'}
+                        </Button>
+                      </div>
+                      {log.summary && (
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', background: 'rgba(21, 107, 244, 0.08)', padding: '8px 12px', borderRadius: '4px', fontSize: '10px', color: 'var(--accent-indigo)', lineHeight: '1.4' }}>
+                          <Bot className="w-3.5 h-3.5" style={{ flexShrink: 0, marginTop: '2px' }} />
+                          <div>
+                            <strong>AI Summary:</strong>
+                            <p style={{ margin: '4px 0 0 0', whiteSpace: 'pre-wrap' }}>{log.summary}</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <div style={{ textAlign: 'center', fontSize: '12px', color: 'var(--text-muted)', padding: '24px 0' }}>
+                    {callLogs.length === 0
+                      ? 'No call logs available. Place a call above to start!'
+                      : 'No call logs matching your search.'}
                   </div>
                 )}
               </div>

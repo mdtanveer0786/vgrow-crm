@@ -1,11 +1,17 @@
 import React, { useState } from 'react';
+import { useAppContext } from '../../context/AppContext';
 import { Layers, Briefcase, FileText, CheckCircle, Search, CreditCard, HelpCircle } from 'lucide-react';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 
 export default function ClientPortal() {
   const [activeTab, setActiveTab] = useState('projects');
-  const clientName = "Acme Corp"; // Mocked for now
+  const { user } = useAppContext();
+
+  const clientName = user?.tenant?.name 
+    || (user?.firstName ? `${user.firstName}${user.lastName ? ' ' + user.lastName : ''}` : '')
+    || user?.email
+    || 'Valued Client';
 
   return (
     <div className="client-portal-wrapper" style={{ minHeight: '100vh', background: 'var(--bg-default)', display: 'flex', flexDirection: 'column' }}>

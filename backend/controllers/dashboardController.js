@@ -53,25 +53,35 @@ exports.getDashboard = asyncHandler(async (req, res) => {
     count: item._count.id
   }));
 
-  const hygieneScore = 85;
-  const profileHealthScore = 90;
-  const websiteListingHealth = 95;
-  const reviewsCount = 12;
+  const upcomingMeetingsDb = await prisma.meeting.findMany({
+    where: { organizationId: orgId, startTime: { gte: new Date() }, status: 'Scheduled' },
+    orderBy: { startTime: 'asc' },
+    take: 5
+  });
 
-  const upcomingMeetings = [
-    { id: 1, leadName: 'Sonam Sharma', time: 'Tomorrow, 10:00 AM', agenda: 'Proposal Review' },
-    { id: 2, leadName: 'Saksham Bhatnagar', time: 'In 2 days, 2:30 PM', agenda: 'Product Demonstration' }
-  ];
+  const upcomingMeetings = upcomingMeetingsDb.map(m => ({
+    id: m.id,
+    leadName: m.title, // In real app, relate this to a Lead/Contact
+    time: m.startTime.toLocaleString(),
+    agenda: m.meetingType
+  }));
 
-  const journeyActions = [
-    { id: 1, leadName: 'Pawan Tiwari', action: 'Send follow-up email', dueDate: 'Overdue (1 day)' },
-    { id: 2, leadName: 'Pankaj Kumar', action: 'Call to confirm requirements', dueDate: 'Today' }
-  ];
+  const pendingTasks = await prisma.task.findMany({
+    where: { organizationId: orgId, status: 'Pending' },
+    orderBy: { dueDate: 'asc' },
+    take: 5
+  });
+
+  const journeyActions = pendingTasks.map(t => ({
+    id: t.id,
+    leadName: 'N/A', // Relate to Lead/Contact if entityType is set
+    action: t.title,
+    dueDate: t.dueDate ? t.dueDate.toLocaleString() : 'No Date'
+  }));
 
   res.json({
     stats: { totalLeads, warmLeads, hotLeads, coldLeads, convertedLeads, prospectingLeads, contactedLeads, qualifiedLeads, proposalLeads },
     advanced: { conversionRate, mrr, leadsBySource },
-    scores: { hygieneScore, profileHealthScore, websiteListingHealth, reviewsCount },
     upcomingMeetings,
     journeyActions
   });

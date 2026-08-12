@@ -58,12 +58,23 @@ export default function ProposalsPage() {
     const signatureBase64 = sigCanvas.current.getTrimmedCanvas().toDataURL('image/png');
     
     try {
+      let clientIp: string | undefined;
+      try {
+        const ipRes = await fetch('https://api.ipify.org?format=json');
+        if (ipRes.ok) {
+          const ipData = await ipRes.json();
+          clientIp = ipData.ip;
+        }
+      } catch (e) {
+        // Fallback to backend IP detection
+      }
+
       const res = await authFetch(`${API_BASE}/proposals/${selectedProposalForSign.id}/sign`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           signatureBase64,
-          ipAddress: '192.168.1.1', // Mocked IP as requested
+          ...(clientIp ? { ipAddress: clientIp } : {}),
           userAgent: navigator.userAgent
         })
       });
