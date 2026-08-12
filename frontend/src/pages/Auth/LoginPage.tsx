@@ -414,21 +414,7 @@ export default function LoginPage() {
           </form>
         )}
 
-        {/* Demo Credentials Section (Only visible on login mode) */}
-        {mode === 'login' && (
-          <div style={{
-            background: 'rgba(99, 102, 241, 0.05)',
-            border: '1px solid rgba(99, 102, 241, 0.15)',
-            borderRadius: '8px',
-            padding: '12px',
-            fontSize: '12px',
-            color: 'var(--text-secondary)'
-          }}>
-            <div style={{ fontWeight: '700', color: 'var(--accent-indigo)', marginBottom: '4px' }}>Demo Credentials:</div>
-            <div>Admin: <strong>vaibhav@vgrow.com</strong> / <strong>password123</strong></div>
-            <div>Sales Rep: <strong>karan@vgrow.com</strong> / <strong>password123</strong></div>
-          </div>
-        )}
+
       </div>
     </div>
   );

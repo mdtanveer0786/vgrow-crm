@@ -108,30 +108,7 @@ export default function InboxPage() {
     setMessageText('');
   };
 
-  // Webhook Simulator to trigger real-time incoming messages for testing
-  const simulateInboundMessage = () => {
-    if (!selectedContact) return;
 
-    const responses = [
-      "Sounds great! Please send over the onboarding files.",
-      "Can you confirm if your server supports MySQL integrations?",
-      "Perfect. I am checking the quote draft you sent.",
-      "Thanks for the prompt response. Let's close the deal today!"
-    ];
-    
-    const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-
-    setTimeout(async () => {
-      const inboundComm = {
-        type: selectedContact.channel || 'WhatsApp',
-        subject: `Inbound WhatsApp Inquiry from ${selectedContact.name}`,
-        content: randomResponse,
-        direction: 'Inbound',
-        status: 'Completed'
-      };
-      await handleAddCommunication(inboundComm);
-    }, 1500);
-  };
 
   const filteredConversations = conversations.filter(c => 
     c.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -146,18 +123,7 @@ export default function InboxPage() {
               <h2 className="page-title">Omnichannel Team Inbox</h2>
               <p className="page-desc">Consolidated real-time customer communication center.</p>
             </div>
-            {selectedContact && (
-              <div>
-                <button 
-                  onClick={simulateInboundMessage}
-                  className="btn-secondary" 
-                  style={{ background: 'var(--accent-indigo)', color: 'white', border: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}
-                >
-                  <Activity className="w-3.5 h-3.5" />
-                  Simulate Webhook Message
-                </button>
-              </div>
-            )}
+
           </div>
 
           <div className="inbox-layout" style={{
