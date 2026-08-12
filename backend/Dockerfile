@@ -1,21 +1,43 @@
-FROM node:20-alpine
+# Build stage
+FROM node:18-alpine AS builder
 
-# Set working directory
 WORKDIR /app
 
-# Copy package files and install dependencies
+# Install dependencies first for caching
 COPY package*.json ./
-RUN npm ci --only=production
+COPY prisma ./prisma/
 
-# Copy prisma schema and generate client
-COPY prisma ./prisma
+# Install all dependencies (including dev for prisma generate)
+RUN npm ci
+
+# Generate prisma client
 RUN npx prisma generate
 
-# Copy the rest of the application
+# Copy source code
 COPY . .
 
-# Expose the API port
+# Production stage
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Copy built artifacts from builder
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package*.json ./
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/config ./config
+COPY --from=builder /app/controllers ./controllers
+COPY --from=builder /app/middleware ./middleware
+COPY --from=builder /app/routes ./routes
+COPY --from=builder /app/services ./services
+COPY --from=builder /app/utils ./utils
+COPY --from=builder /app/server.js ./
+
+# Set environment
+ENV NODE_ENV=production
+
+# Expose port
 EXPOSE 5000
 
-# Start the server
-CMD ["node", "server.js"]
+# Start server
+CMD ["npm", "start"]
